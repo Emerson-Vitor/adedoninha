@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo do Stop!</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for a modern look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen p-4 sm:p-6">
+
+    <div class="w-full max-w-5xl mx-auto">
+        <h1 class="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6 text-center">Jogo do Stop!</h1>
+
+        <!-- Step 1: Category Setup (Initially Visible) -->
+        <div id="category-setup" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 md:p-8 mb-8">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-200">Passo 1: Defina as 6 Categorias</h2>
+            <div id="category-inputs" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Category input fields will be generated here -->
+            </div>
+            <div class="mt-6 text-center">
+                <button id="start-game-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-transform transform hover:scale-105">
+                    Iniciar Jogo
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 2: Game Area (Initially Hidden) -->
+        <div id="game-area" class="hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 md:p-8 mb-8">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-gray-200">Nova Rodada</h2>
+                <div id="word-inputs" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-8">
+                    <!-- Word and score inputs will be generated here -->
+                </div>
+                <div class="mt-8 text-center">
+                    <button id="add-round-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-transform transform hover:scale-105">
+                        Adicionar Rodada
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Table -->
+            <div id="results-area" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 md:p-8">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-200">Resultados</h2>
+                <div class="overflow-x-auto">
+                    <table id="results-table" class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr id="results-header">
+                                <!-- Table headers will be generated here -->
+                            </tr>
+                        </thead>
+                        <tbody id="results-body">
+                            <!-- Table rows will be generated here -->
+                        </tbody>
+                    </table>
+                </div>
+                 <div class="mt-6 text-center">
+                    <button id="reset-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-transform transform hover:scale-105">
+                        Resetar Jogo Completo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Element References ---
+            const categorySetup = document.getElementById('category-setup');
+            const categoryInputsContainer = document.getElementById('category-inputs');
+            const startGameBtn = document.getElementById('start-game-btn');
+            const gameArea = document.getElementById('game-area');
+            const wordInputsContainer = document.getElementById('word-inputs');
+            const addRoundBtn = document.getElementById('add-round-btn');
+            const resultsHeader = document.getElementById('results-header');
+            const resultsBody = document.getElementById('results-body');
+            const resetBtn = document.getElementById('reset-btn');
+
+            // --- State Variables ---
+            let categories = [];
+            let rounds = [];
+            const NUM_CATEGORIES = 6;
+
+            // --- Functions ---
+
+            /**
+             * Saves the current state (categories and rounds) to localStorage.
+             */
+            const saveState = () => {
+                localStorage.setItem('stopGameCategories', JSON.stringify(categories));
+                localStorage.setItem('stopGameRounds', JSON.stringify(rounds));
+            };
+
+            /**
+             * Renders a single round into a new row in the results table.
+             * @param {object} roundData - The data for the round to render.
+             * @param {number} roundIndex - The index of the round.
+             */
+            const renderRoundToTable = (roundData, roundIndex) => {
+                const tr = document.createElement('tr');
+                tr.className = 'bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600';
+                
+                let roundTotal = 0;
+                categories.forEach(cat => {
+                    const cellData = roundData[cat] || { word: '-', score: 0 };
+                    const td = document.createElement('td');
+                    td.className = 'px-6 py-4';
+                    td.innerHTML = `<div class="font-medium text-gray-900 dark:text-white">${cellData.word}</div><div class="text-xs text-indigo-500 dark:text-indigo-400 font-bold">${cellData.score} pts</div>`;
+                    tr.appendChild(td);
+                    roundTotal += cellData.score;
+                });
+
+                const totalTd = document.createElement('td');
+                totalTd.className = 'px-6 py-4 font-bold text-lg text-gray-900 dark:text-white';
+                totalTd.textContent = roundTotal;
+                tr.appendChild(totalTd);
+
+                resultsBody.appendChild(tr);
+            };
+
+            /**
+             * Clears and re-renders all saved rounds to the table.
+             */
+            const renderAllRounds = () => {
+                resultsBody.innerHTML = '';
+                rounds.forEach(renderRoundToTable);
+            };
+
+            /**
+             * Generates the input fields for words and scores based on the defined categories.
+             */
+            const generateWordInputs = () => {
+                wordInputsContainer.innerHTML = '';
+                categories.forEach((cat, index) => {
+                    const inputId = `word-input-${index}`;
+                    const div = document.createElement('div');
+                    div.innerHTML = `
+                        <label for="${inputId}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">${cat}</label>
+                        <input type="text" id="${inputId}" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="Digite a palavra...">
+                        <fieldset class="mt-2">
+                            <legend class="sr-only">Pontuação</legend>
+                            <div class="flex items-center space-x-4">
+                                ${[0, 5, 10].map(score => `
+                                    <div class="flex items-center">
+                                        <input id="score-${index}-${score}" name="score-${index}" type="radio" value="${score}" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                        <label for="score-${index}-${score}" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">${score}</label>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </fieldset>
+                    `;
+                    wordInputsContainer.appendChild(div);
+                });
+            };
+
+            /**
+             * Builds the header of the results table based on the defined categories.
+             */
+            const buildTableHeader = () => {
+                resultsHeader.innerHTML = ''; // Clear existing header
+                categories.forEach(cat => {
+                    const th = document.createElement('th');
+                    th.scope = 'col';
+                    th.className = 'px-6 py-3';
+                    th.textContent = cat;
+                    resultsHeader.appendChild(th);
+                });
+                const totalTh = document.createElement('th');
+                totalTh.scope = 'col';
+                totalTh.className = 'px-6 py-3';
+                totalTh.textContent = 'Total';
+                resultsHeader.appendChild(totalTh);
+            };
+
+            /**
+             * Transitions the UI from category setup to the main game area.
+             */
+            const setupGameUI = () => {
+                categorySetup.classList.add('hidden');
+                gameArea.classList.remove('hidden');
+                buildTableHeader();
+                generateWordInputs();
+                renderAllRounds();
+            };
+            
+            /**
+             * Handles the "Iniciar Jogo" button click.
+             */
+            const handleStartGame = () => {
+                const inputs = categoryInputsContainer.querySelectorAll('input');
+                const tempCategories = [];
+                let allFilled = true;
+                inputs.forEach(input => {
+                    if (input.value.trim() === '') {
+                        allFilled = false;
+                        input.classList.add('border-red-500');
+                    } else {
+                        input.classList.remove('border-red-500');
+                        tempCategories.push(input.value.trim());
+                    }
+                });
+
+                if (!allFilled) {
+                    alert('Por favor, preencha todas as 6 categorias.');
+                    return;
+                }
+
+                categories = tempCategories;
+                saveState();
+                setupGameUI();
+            };
+
+            /**
+             * Handles the "Adicionar Rodada" button click.
+             */
+            const handleAddRound = () => {
+                const newRound = {};
+                let allValid = true;
+
+                categories.forEach((cat, index) => {
+                    const wordInput = document.getElementById(`word-input-${index}`);
+                    const scoreRadio = document.querySelector(`input[name="score-${index}"]:checked`);
+                    
+                    const word = wordInput.value.trim();
+                    if (word === '') {
+                        wordInput.classList.add('border-red-500');
+                        allValid = false;
+                    } else {
+                        wordInput.classList.remove('border-red-500');
+                    }
+
+                    if (!scoreRadio) {
+                         // Find the fieldset to highlight it
+                        wordInput.nextElementSibling.classList.add('ring-2', 'ring-red-500', 'rounded-md');
+                        allValid = false;
+                    } else {
+                        wordInput.nextElementSibling.classList.remove('ring-2', 'ring-red-500', 'rounded-md');
+                    }
+                    
+                    if(allValid) {
+                       newRound[cat] = {
+                            word: word,
+                            score: parseInt(scoreRadio.value, 10)
+                        };
+                    }
+                });
+
+                if (!allValid) {
+                    alert('Por favor, preencha todas as palavras e selecione uma pontuação para cada uma.');
+                    return;
+                }
+
+                rounds.push(newRound);
+                saveState();
+                renderRoundToTable(newRound, rounds.length - 1);
+                
+                // Reset input fields for the next round
+                generateWordInputs();
+            };
+
+            /**
+             * Initializes the application on page load.
+             */
+            const init = () => {
+                // Generate initial category inputs
+                for (let i = 0; i < NUM_CATEGORIES; i++) {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white';
+                    input.placeholder = `Categoria ${i + 1}...`;
+                    categoryInputsContainer.appendChild(input);
+                }
+
+                // Load state from localStorage
+                const savedCategories = localStorage.getItem('stopGameCategories');
+                const savedRounds = localStorage.getItem('stopGameRounds');
+
+                if (savedCategories) {
+                    categories = JSON.parse(savedCategories);
+                    if (savedRounds) {
+                        rounds = JSON.parse(savedRounds);
+                    }
+                    setupGameUI();
+                }
+
+                // Add event listeners
+                startGameBtn.addEventListener('click', handleStartGame);
+                addRoundBtn.addEventListener('click', handleAddRound);
+                resetBtn.addEventListener('click', () => {
+                    if (confirm('Você tem certeza que deseja apagar todo o jogo? Esta ação não pode ser desfeita.')) {
+                        localStorage.removeItem('stopGameCategories');
+                        localStorage.removeItem('stopGameRounds');
+                        location.reload();
+                    }
+                });
+            };
+
+            // --- Start the Application ---
+            init();
+        });
+    </script>
+</body>
+</html>
